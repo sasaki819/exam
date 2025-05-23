@@ -1,0 +1,43 @@
+version: '3.8'
+
+services:
+  app:
+    build: .
+    ports:
+      - "8000:8000"
+    # For development, you might want to mount volumes for hot-reloading.
+    # The Dockerfile is set up for a more production-like build where code is copied.
+    # If you enable --reload in the CMD below or in Dockerfile, also uncomment these:
+    # volumes:
+    #   - ./app:/usr/src/app/app
+    #   - ./static:/usr/src/app/static
+    #   - ./templates:/usr/src/app/templates
+    #   - ./requirements.txt:/usr/src/app/requirements.txt 
+    # The line below mounts the whole project, which can be useful for some dev setups
+    # but ensure .dockerignore is well-configured.
+    # volumes:
+    #   - .:/usr/src/app 
+    env_file:
+      - .env # Docker Compose will read .env from the context directory
+    depends_on:
+      - db
+    # To enable hot-reloading for development, uncomment the command below
+    # and ensure you have the necessary volume mounts above.
+    # command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+
+  db:
+    image: postgres:13-alpine # Using alpine for smaller size
+    volumes:
+      - postgres_data:/var/lib/postgresql/data/
+    # The port 5432 is not exposed to the host by default for security.
+    # If you need to connect to the DB from your host machine, uncomment the next lines.
+    # ports:
+    #   - "5433:5432" # Example: maps container's 5432 to host's 5433
+    env_file:
+      - .env # For POSTGRES_USER, POSTGRES_PASSWORD, POSTGRES_DB from .env
+
+volumes:
+  postgres_data:
+    # This volume will persist database data across docker-compose down/up cycles.
+    # If you want to start fresh, you can run 'docker-compose down -v' to remove it.
+    driver: local

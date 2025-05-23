@@ -1,0 +1,35 @@
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+.git/
+.pytest_cache/
+.vscode/
+*.db
+*.sqlite3
+
+# Alembic - assuming it's not used in the final container due to previous issues
+alembic/
+alembic.ini
+
+# Logs and environment files
+*.log
+.env
+.env.*local
+
+# Test files and documentation (not needed in production image)
+tests/
+MANUAL_TESTING_GUIDE.md
+*.md 
+
+# Coverage reports
+htmlcov/
+.coverage
+
+# Docker specific files if any that shouldn't be in context
+Dockerfile
+docker-compose.yml
+.dockerignore

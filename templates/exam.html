@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quiz Exam</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+    <div class="container">
+        <h1>Quiz Exam</h1>
+        <div id="question-area">
+            <div id="problem-statement" class="problem-statement">Loading question...</div>
+            <form id="options-container" class="options-container">
+                <!-- Options will be dynamically inserted here -->
+            </form>
+            <button id="submit-answer-button">Submit Answer</button>
+        </div>
+        
+        <div id="result-container" class="result-container" style="display: none;">
+            <h2>Result:</h2>
+            <p id="correct-status"></p>
+            <p>Correct Answer Option: <span id="correct-option"></span></p>
+            <p>Explanation: <span id="explanation-text"></span></p>
+        </div>
+
+        <button id="next-question-button" style="display: none;">Next Question</button>
+        <div id="exam-error-message" class="error-message"></div>
+        
+        <div class="navigation-links" style="margin-top: 20px; text-align: center;">
+            <a href="/summary" class="button-link">View Summary</a>
+            <a href="#" id="logout-link" class="button-link logout-button">Logout</a>
+        </div>
+    </div>
+    <footer>
+        <p>&copy; 2024 FastAPI Quiz App</p>
+    </footer>
+    <script src="/static/js/exam.js"></script>
+</body>
+</html>

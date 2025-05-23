@@ -1,0 +1,319 @@
+/* Global Styles */
+:root {
+    --primary-color: #007bff; /* A modern blue */
+    --primary-color-hover: #0056b3;
+    --secondary-color: #6c757d; /* A muted gray for secondary elements */
+    --success-color: #28a745; /* Green for correct answers */
+    --danger-color: #dc3545;  /* Red for errors/incorrect answers */
+    --light-bg: #f8f9fa;     /* Light background for body */
+    --dark-text: #343a40;    /* Dark text for readability */
+    --medium-text: #6c757d;  /* Lighter text for explanations, etc. */
+    --border-color: #dee2e6; /* Border color for inputs, tables */
+    --white-color: #ffffff;
+    --box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    --border-radius: 0.3rem; /* Consistent border radius */
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    line-height: 1.6;
+    margin: 0;
+    padding: 0; /* Changed from 20px to 0, container will handle padding */
+    background-color: var(--light-bg);
+    color: var(--dark-text);
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+}
+
+.container {
+    width: 90%;
+    max-width: 800px; /* Increased max-width slightly */
+    margin: 20px auto; /* Added top/bottom margin */
+    background: var(--white-color);
+    padding: 30px; /* Increased padding */
+    border-radius: var(--border-radius);
+    box-shadow: var(--box-shadow);
+    flex-grow: 1;
+}
+
+h1, h2 {
+    color: var(--dark-text);
+    text-align: center;
+    margin-bottom: 20px;
+}
+
+h1 {
+    font-size: 2rem;
+    margin-bottom: 30px;
+}
+
+h2 {
+    font-size: 1.5rem;
+    margin-top: 30px;
+    border-bottom: 1px solid var(--border-color);
+    padding-bottom: 10px;
+}
+
+/* Forms */
+form div {
+    margin-bottom: 15px;
+}
+
+label {
+    display: block;
+    margin-bottom: 8px; /* Increased margin */
+    font-weight: bold;
+    color: var(--dark-text);
+}
+
+input[type="text"],
+input[type="password"],
+input[type="email"] { /* Added email for completeness */
+    width: 100%; /* Use 100% and box-sizing for easier width management */
+    box-sizing: border-box;
+    padding: 12px; /* Increased padding */
+    margin-bottom: 10px; /* Adjusted margin */
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius);
+    font-size: 1rem;
+}
+
+input[type="text"]:focus,
+input[type="password"]:focus,
+input[type="email"]:focus {
+    border-color: var(--primary-color);
+    outline: none;
+    box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+}
+
+
+/* Buttons */
+button, .button-link { /* Apply button styling to .button-link as well */
+    display: inline-block; /* Changed to inline-block for .button-link */
+    width: auto; /* Auto width for inline-block */
+    min-width: 120px; /* Minimum width for better appearance */
+    padding: 12px 20px; /* Adjusted padding */
+    background-color: var(--primary-color);
+    color: var(--white-color);
+    border: none;
+    border-radius: var(--border-radius);
+    cursor: pointer;
+    font-size: 1rem;
+    text-align: center;
+    text-decoration: none; /* For .button-link */
+    transition: background-color 0.15s ease-in-out;
+    margin-right: 10px; /* Spacing for multiple buttons */
+}
+button:last-child, .button-link:last-child {
+    margin-right: 0;
+}
+
+/* Full width button for forms if needed */
+form button[type="submit"] {
+    width: 100%;
+    background-color: var(--success-color); /* Green for primary form actions */
+}
+form button[type="submit"]:hover {
+    background-color: #1e7e34; /* Darker green */
+}
+
+
+button:hover, .button-link:hover {
+    background-color: var(--primary-color-hover);
+}
+
+button:disabled {
+    background-color: #ccc;
+    cursor: not-allowed;
+}
+
+.logout-button { /* Specific styling for logout */
+    background-color: var(--danger-color);
+}
+.logout-button:hover {
+    background-color: #c82333; /* Darker red */
+}
+
+
+/* Error Messages */
+.error-message {
+    color: var(--danger-color);
+    background-color: #f8d7da; /* Light red background */
+    border: 1px solid #f5c6cb; /* Reddish border */
+    padding: 10px;
+    margin-top: 15px;
+    border-radius: var(--border-radius);
+    text-align: center;
+}
+
+/* Exam Page Specifics */
+.problem-statement {
+    font-size: 1.25em; /* Slightly larger */
+    margin-bottom: 25px;
+    padding: 20px;
+    background-color: #e9f7ff; /* Light blue background */
+    border-left: 5px solid var(--primary-color); /* Accent border */
+    border-radius: var(--border-radius);
+}
+
+.options-container {
+    list-style: none;
+    padding: 0;
+    margin-bottom: 20px;
+}
+
+.options-container div { /* Target divs directly as per current HTML */
+    margin-bottom: 12px;
+    padding: 15px; /* Increased padding */
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius);
+    cursor: pointer;
+    transition: background-color 0.15s ease-in-out, border-color 0.15s ease-in-out;
+    display: flex;
+    align-items: center;
+}
+
+.options-container div:hover {
+    background-color: #eef8ff; /* Lighter blue on hover */
+    border-color: var(--primary-color);
+}
+
+.options-container input[type="radio"] {
+    margin-right: 12px;
+    width: 18px; /* Custom size */
+    height: 18px; /* Custom size */
+    cursor: pointer;
+}
+.options-container label { /* Style labels within options for better clickability */
+    font-weight: normal;
+    margin-bottom: 0;
+    flex-grow: 1; /* Allow label to take available space */
+    cursor: pointer;
+}
+
+
+.result-container {
+    margin-top: 25px;
+    padding: 20px; /* Increased padding */
+    border-radius: var(--border-radius);
+    border: 1px solid var(--border-color);
+}
+
+.result-container .correct {
+    color: var(--success-color);
+    font-weight: bold;
+    font-size: 1.2em;
+}
+
+.result-container .incorrect {
+    color: var(--danger-color);
+    font-weight: bold;
+    font-size: 1.2em;
+}
+
+.result-container p {
+    margin-bottom: 10px;
+}
+.result-container p:last-child {
+    margin-bottom: 0;
+}
+.result-container #explanation-text {
+    color: var(--medium-text);
+    font-style: italic;
+}
+
+
+#submit-answer-button,
+#next-question-button {
+    margin-top: 20px;
+}
+
+/* Summary Page Specifics */
+#summary-stats-container p {
+    font-size: 1.1em;
+    margin-bottom: 8px;
+    padding: 8px;
+    border-bottom: 1px dashed var(--border-color);
+}
+#summary-stats-container p:last-child {
+    border-bottom: none;
+}
+#summary-stats-container span {
+    font-weight: bold;
+    color: var(--primary-color);
+}
+
+#question-performance-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 20px;
+    font-size: 0.95em;
+}
+
+#question-performance-table th,
+#question-performance-table td {
+    border: 1px solid var(--border-color);
+    padding: 10px 12px; /* Adjusted padding */
+    text-align: left;
+}
+
+#question-performance-table th {
+    background-color: #e9ecef; /* Light gray for table header */
+    color: var(--dark-text);
+    font-weight: bold;
+}
+
+#question-performance-table tbody tr:nth-child(even) {
+    background-color: var(--light-bg); /* Zebra striping */
+}
+#question-performance-table tbody tr:hover {
+    background-color: #dff0d8; /* Light green on hover, just an example */
+}
+
+/* Navigation Links (used in exam.html and summary.html) */
+.navigation-links {
+    margin-top: 30px;
+    padding-top: 20px;
+    border-top: 1px solid var(--border-color);
+    text-align: center; /* Center the links container */
+}
+
+/* Footer (Simple) */
+footer {
+    text-align: center;
+    padding: 20px;
+    margin-top: auto; /* Pushes footer to bottom if content is short */
+    background-color: #e9ecef;
+    color: var(--medium-text);
+    font-size: 0.9em;
+}
+
+/* Basic Responsiveness */
+@media (max-width: 600px) {
+    .container {
+        width: 95%;
+        padding: 20px; /* Slightly reduce padding on small screens */
+    }
+
+    h1 {
+        font-size: 1.8rem;
+    }
+
+    button, .button-link {
+        font-size: 0.95rem;
+        padding: 10px 15px;
+    }
+    
+    .navigation-links a, .navigation-links button { /* Stack buttons on small screens */
+        display: block;
+        width: 80%;
+        margin: 10px auto;
+    }
+
+    input[type="text"],
+    input[type="password"],
+    input[type="email"] {
+        font-size: 0.95rem;
+    }
+}
