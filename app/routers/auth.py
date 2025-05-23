@@ -1,5 +1,5 @@
 from datetime import timedelta
-from typing import Annotated
+from typing import Annotated, Optional # Added Optional
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
@@ -15,7 +15,7 @@ router = APIRouter()
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token") # Relative to the router prefix
 
-def get_user_from_db(db: Session, username: str) -> User | None:
+def get_user_from_db(db: Session, username: str) -> Optional[User]: # Changed return type hint
     return crud.crud_user.get_user_by_username(db, username=username)
 
 async def get_current_user(
