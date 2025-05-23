@@ -19,7 +19,7 @@ class Question(QuestionBase):
     id: int
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 
 # Schemas for Summary Statistics
@@ -68,7 +68,7 @@ class User(UserBase):
     id: int
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 
 # Schemas for Token
@@ -96,4 +96,4 @@ class UserAnswer(UserAnswerBase):
     answered_at: datetime
 
     class Config:
-        orm_mode = True
+        from_attributes = True
