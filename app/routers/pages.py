@@ -52,7 +52,7 @@ async def manage_exam_types_page(request: Request):
     return templates.TemplateResponse("manage_exam_types.html", {"request": request})
 
 @router.get("/manage-questions", response_class=HTMLResponse)
-async def manage_questions_page(request: Request, current_user: Optional[models.User] = Depends(get_current_user_or_none)): # type: ignore
-    if not current_user: # Or use a stricter auth dependency that redirects
-        return templates.TemplateResponse("login.html", {"request": request, "error": "Please login to manage questions."}, status_code=401)
-    return templates.TemplateResponse("manage_questions.html", {"request": request, "user": current_user})
+async def manage_questions_page(request: Request):
+    # The manage_questions.js will handle token check for API calls 
+    # and redirect to /login if not authenticated.
+    return templates.TemplateResponse("manage_questions.html", {"request": request})
