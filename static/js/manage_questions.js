@@ -255,11 +255,44 @@ document.addEventListener('DOMContentLoaded', async () => {
             const exportUrl = `/exam-types/${selectedExamTypeId}/export-questions/`;
             
             try {
-                window.location.href = exportUrl;
-                displayMessage('Export initiated. Your browser will now download the file.', 'success');
+                const token = localStorage.getItem('accessToken');
+                if (!token) {
+                    displayMessage('Authentication token not found. Please log in again.', 'error');
+                    window.location.href = '/login'; // Redirect to login
+                    return;
+                }
+                const headers = { 'Authorization': 'Bearer ' + token };
+
+                const response = await fetch(exportUrl, { headers });
+
+                if (response.ok) {
+                    const blob = await response.blob();
+                    const contentDisposition = response.headers.get('content-disposition');
+                    let filename = 'exported_questions.json'; // Default filename
+                    if (contentDisposition) {
+                        const match = contentDisposition.match(/filename="?([^"]+)"?/i);
+                        if (match && match[1]) {
+                            filename = match[1];
+                        }
+                    }
+
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.style.display = 'none';
+                    a.href = url;
+                    a.download = filename;
+                    document.body.appendChild(a);
+                    a.click();
+                    window.URL.revokeObjectURL(url);
+                    document.body.removeChild(a);
+                    displayMessage('Questions exported successfully. Download has started.', 'success');
+                } else {
+                    const errorData = await response.json().catch(() => ({ detail: 'Unknown error during export.' }));
+                    displayMessage(`Export failed: ${errorData.detail || response.statusText}`, 'error');
+                }
             } catch (error) {
-                console.error('Error initiating export:', error);
-                displayMessage('Failed to initiate export. See console for details.', 'error');
+                console.error('Export error:', error);
+                displayMessage(`Export failed: ${error.message}`, 'error');
             }
         });
     }
