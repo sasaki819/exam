@@ -1,10 +1,9 @@
-version: '3.8'
-
 services:
   app:
     build: .
     ports:
       - "8000:8000"
+    user: "1000:1000"
     # For development, you might want to mount volumes for hot-reloading.
     # The Dockerfile is set up for a more production-like build where code is copied.
     # If you enable --reload in the CMD below or in Dockerfile, also uncomment these:
@@ -28,7 +27,8 @@ services:
   db:
     image: postgres:13-alpine # Using alpine for smaller size
     volumes:
-      - postgres_data:/var/lib/postgresql/data/
+      - ./postgres_data:/var/lib/postgresql/data/
+    user: "1000:1000"
     # The port 5432 is not exposed to the host by default for security.
     # If you need to connect to the DB from your host machine, uncomment the next lines.
     # ports:
@@ -36,8 +36,3 @@ services:
     env_file:
       - .env # For POSTGRES_USER, POSTGRES_PASSWORD, POSTGRES_DB from .env
 
-volumes:
-  postgres_data:
-    # This volume will persist database data across docker-compose down/up cycles.
-    # If you want to start fresh, you can run 'docker-compose down -v' to remove it.
-    driver: local
