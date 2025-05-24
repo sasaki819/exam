@@ -107,3 +107,17 @@ def authenticated_client(client: TestClient, test_user: models.User) -> TestClie
         "Authorization": f"Bearer {token}"
     }
     return client
+
+
+@pytest.fixture(scope="function")
+def test_exam_type(db_session: SQLAlchemySession) -> models.ExamType:
+    """
+    Fixture to create a test exam type in the database.
+    Returns the created ExamType model instance.
+    """
+    exam_type_data = schemas.ExamTypeCreate(name="Default Test Exam Type")
+    db_exam_type = models.ExamType(name=exam_type_data.name)
+    db_session.add(db_exam_type)
+    db_session.commit()
+    db_session.refresh(db_exam_type)
+    return db_exam_type

@@ -3,46 +3,46 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Quiz Summary</title>
+    <title>User Summary</title>
     <link rel="stylesheet" href="/static/css/style.css">
 </head>
 <body>
     <div class="container">
-        <h1>Your Quiz Summary</h1>
-        
+        <h1>User Summary</h1>
+        <div id="summary-error-message" class="error-message"></div>
+
+        <div id="filter-area" class="filter-container" style="margin-bottom: 20px;">
+            <label for="summary-exam-type-dropdown">Filter by Exam Type:</label>
+            <select id="summary-exam-type-dropdown">
+                <option value="">All Exam Types</option>
+                <!-- Exam types will be populated here by JS -->
+            </select>
+        </div>
+        <h2 id="summary-filter-heading">Overall Summary</h2> <!-- Heading to show current filter -->
+
         <div id="summary-stats-container">
-            <h2>Overall Performance</h2>
-            <p>Total Unique Questions Attempted: <span id="total-unique-questions-attempted">Loading...</span></p>
-            <p>Total Answers Submitted: <span id="total-answers-submitted">Loading...</span></p>
-            <p>Correct Answers: <span id="total-correct-answers">Loading...</span></p>
-            <p>Incorrect Answers: <span id="total-incorrect-answers">Loading...</span></p>
-            <p>Correct Answer Rate: <span id="correct-answer-rate">Loading...</span>%</p>
+            <h3>Overall Statistics</h3>
+            <p>Total Unique Questions Attempted: <span id="total-unique-questions"></span></p>
+            <p>Total Answers Submitted: <span id="total-answers-submitted"></span></p>
+            <p>Total Correct Answers: <span id="total-correct-answers"></span></p>
+            <p>Total Incorrect Answers: <span id="total-incorrect-answers"></span></p>
+            <p>Correct Answer Rate: <span id="correct-answer-rate"></span>%</p>
         </div>
 
         <div id="question-performance-container" style="margin-top: 30px;">
-            <h2>Performance Per Question</h2>
-            <table id="question-performance-table">
-                <thead>
-                    <tr>
-                        <th>Question ID</th>
-                        <th>Problem Statement</th>
-                        <th>Times Answered</th>
-                        <th>Times Correct</th>
-                        <th>Times Incorrect</th>
-                    </tr>
-                </thead>
-                <tbody id="question-performance-tbody">
-                    <!-- Data will be populated by JavaScript -->
-                </tbody>
-            </table>
-            <p id="performance-loading-message">Loading performance data...</p>
+            <h3>Performance Per Question</h3>
+            <ul id="question-performance-list">
+                <!-- Detailed performance will be listed here -->
+            </ul>
         </div>
-        
-        <div style="margin-top: 30px;">
-            <a href="/exam" class="button-link">Back to Exam</a>
-            <a href="#" id="logout-link-summary" class="button-link logout-button">Logout</a>
-        </div>
-        <div id="summary-error-message" class="error-message"></div>
+         <div class="navigation-links" style="margin-top: 20px; text-align: center;">
+             <a href="/" class="button-link">Home</a>
+             <a href="/exam" class="button-link">Take Exam</a>
+             <!-- Add links to admin pages if appropriate -->
+             <a href="/manage-exam-types" class="button-link">Manage Exam Types</a>
+             <a href="/manage-questions" class="button-link">Manage Questions</a>
+             <a href="#" id="logout-link" class="button-link logout-button">Logout</a>
+         </div>
     </div>
     <footer>
         <p>&copy; 2024 FastAPI Quiz App</p>

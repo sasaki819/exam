@@ -1,97 +1,75 @@
-from typing import List, Dict, Any
 from sqlalchemy.orm import Session
-from sqlalchemy import func
+from sqlalchemy import func, and_, case # Ensure 'and_' and 'case' are imported
+from typing import List, Dict, Any, Optional # Ensure Optional is imported
 
-from app.models.models import UserAnswer, Question
+from app.models.models import UserAnswer, Question # Ensure Question is imported
+from app.schemas import schemas # Assuming schemas are imported
 
-def get_user_summary_stats(db: Session, user_id: int) -> Dict[str, Any]:
-    total_unique_questions_attempted = (
-        db.query(func.count(func.distinct(UserAnswer.question_id)))
-        .filter(UserAnswer.user_id == user_id)
-        .scalar() or 0
-    )
+def get_user_summary_stats(db: Session, user_id: int, exam_type_id: Optional[int] = None) -> schemas.UserSummaryStats:
+    # Base query for UserAnswers by the user
+    user_answers_query = db.query(UserAnswer).filter(UserAnswer.user_id == user_id)
 
-    total_answers_submitted_by_user = (
-        db.query(func.count(UserAnswer.id))
-        .filter(UserAnswer.user_id == user_id)
-        .scalar() or 0
-    )
+    if exam_type_id is not None:
+        user_answers_query = user_answers_query.join(Question, Question.id == UserAnswer.question_id)\
+                                              .filter(Question.exam_type_id == exam_type_id)
 
-    total_correct_answers_by_user = (
-        db.query(func.count(UserAnswer.id))
-        .filter(UserAnswer.user_id == user_id, UserAnswer.is_correct == True)
-        .scalar() or 0
-    )
-
-    total_incorrect_answers_by_user = (
-        db.query(func.count(UserAnswer.id))
-        .filter(UserAnswer.user_id == user_id, UserAnswer.is_correct == False)
-        .scalar() or 0
-    )
+    total_answers_submitted = user_answers_query.count()
     
-    # total_questions_answered_by_user is the same as total_unique_questions_attempted in this context
-    # as per the definitions provided.
+    correct_answers_query = user_answers_query.filter(UserAnswer.is_correct == True)
+    total_correct_answers = correct_answers_query.count()
+    
+    total_incorrect_answers = total_answers_submitted - total_correct_answers
 
-    return {
-        "total_unique_questions_attempted": total_unique_questions_attempted,
-        "total_answers_submitted": total_answers_submitted_by_user, # Renamed for consistency with schema
-        "total_correct_answers": total_correct_answers_by_user, # Renamed for consistency with schema
-        "total_incorrect_answers": total_incorrect_answers_by_user, # Renamed for consistency with schema
-    }
+    # For total_unique_questions_attempted, we need to count distinct question_ids from the filtered answers
+    # unique_questions_query = user_answers_query.distinct(UserAnswer.question_id) # This was the previous approach
+    # total_unique_questions_attempted = unique_questions_query.count() 
+                                                                 
+    # Correct way to count distinct question_ids from the filtered set of answers
+    if exam_type_id is not None:
+         count_unique_q = db.query(func.count(func.distinct(UserAnswer.question_id)))\
+                            .join(Question, Question.id == UserAnswer.question_id)\
+                            .filter(UserAnswer.user_id == user_id, Question.exam_type_id == exam_type_id)\
+                            .scalar() or 0 # Changed to .scalar()
+    else:
+         count_unique_q = db.query(func.count(func.distinct(UserAnswer.question_id)))\
+                            .filter(UserAnswer.user_id == user_id)\
+                            .scalar() or 0 # Changed to .scalar()
+    total_unique_questions_attempted = count_unique_q
 
 
-def get_user_question_performance(db: Session, user_id: int) -> List[Dict[str, Any]]:
-    """
-    Returns a list of objects, each representing a question the user attempted:
-    - question_id
-    - problem_statement
-    - times_answered_by_user
-    - times_correct_by_user
-    - times_incorrect_by_user
-    """
-    # Subquery for total answers per question by user
-    total_answers_sub = (
-        db.query(
+    correct_answer_rate = (total_correct_answers / total_answers_submitted) if total_answers_submitted > 0 else 0
+
+    return schemas.UserSummaryStats(
+        total_unique_questions_attempted=total_unique_questions_attempted,
+        total_answers_submitted=total_answers_submitted,
+        total_correct_answers=total_correct_answers,
+        total_incorrect_answers=total_incorrect_answers,
+        correct_answer_rate=correct_answer_rate
+    )
+
+def get_user_question_performance_summary(db: Session, user_id: int, exam_type_id: Optional[int] = None) -> List[schemas.UserQuestionPerformance]:
+    # Base query for UserAnswers by the user, joined with Question
+    base_query = db.query(
             UserAnswer.question_id,
-            func.count(UserAnswer.id).label("times_answered")
-        )
-        .filter(UserAnswer.user_id == user_id)
-        .group_by(UserAnswer.question_id)
-        .subquery()
-    )
+            Question.problem_statement, # Get problem_statement from Question model
+            func.count(UserAnswer.id).label("times_answered"),
+            func.sum(case((UserAnswer.is_correct == True, 1), else_=0)).label("times_correct"),
+            func.sum(case((UserAnswer.is_correct == False, 1), else_=0)).label("times_incorrect")
+        ).join(Question, Question.id == UserAnswer.question_id)\
+         .filter(UserAnswer.user_id == user_id)
 
-    # Subquery for total correct answers per question by user
-    correct_answers_sub = (
-        db.query(
-            UserAnswer.question_id,
-            func.count(UserAnswer.id).label("times_correct")
-        )
-        .filter(UserAnswer.user_id == user_id, UserAnswer.is_correct == True)
-        .group_by(UserAnswer.question_id)
-        .subquery()
-    )
-
-    query_result = (
-        db.query(
-            Question.id.label("question_id"),
-            Question.problem_statement,
-            func.coalesce(total_answers_sub.c.times_answered, 0).label("times_answered"),
-            func.coalesce(correct_answers_sub.c.times_correct, 0).label("times_correct")
-        )
-        .join(total_answers_sub, Question.id == total_answers_sub.c.question_id) # Inner join to only get questions user answered
-        .outerjoin(correct_answers_sub, Question.id == correct_answers_sub.c.question_id)
-        .order_by(Question.id)
-        .all()
-    )
+    if exam_type_id is not None:
+        base_query = base_query.filter(Question.exam_type_id == exam_type_id)
+    
+    summary_data = base_query.group_by(UserAnswer.question_id, Question.problem_statement).all() # Group by problem_statement too
 
     performance_list = []
-    for row in query_result:
-        times_incorrect = row.times_answered - row.times_correct
-        performance_list.append({
-            "question_id": row.question_id,
-            "problem_statement": row.problem_statement,
-            "times_answered": row.times_answered,
-            "times_correct": row.times_correct,
-            "times_incorrect": times_incorrect,
-        })
+    for item in summary_data:
+        performance_list.append(schemas.UserQuestionPerformance(
+            question_id=item.question_id,
+            problem_statement=item.problem_statement,
+            times_answered=item.times_answered,
+            times_correct=item.times_correct,
+            times_incorrect=item.times_incorrect
+        ))
     return performance_list

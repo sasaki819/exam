@@ -2,6 +2,23 @@ from pydantic import BaseModel
 from datetime import datetime
 from typing import Optional, List # Added List
 
+# Schemas for ExamType (New)
+class ExamTypeBase(BaseModel):
+    name: str
+
+class ExamTypeCreate(ExamTypeBase):
+    pass
+
+# New Schema for updating an ExamType
+class ExamTypeUpdate(BaseModel):
+    name: Optional[str] = None # Allow updating name, make it optional
+
+class ExamType(ExamTypeBase):
+    id: int
+
+    class Config:
+        from_attributes = True
+
 # Schemas for Question
 class QuestionBase(BaseModel):
     problem_statement: str
@@ -11,15 +28,29 @@ class QuestionBase(BaseModel):
     option_4: str
     correct_answer: int
     explanation: Optional[str] = None
+    exam_type_id: int # Added exam_type_id
 
 class QuestionCreate(QuestionBase):
     pass
 
 class Question(QuestionBase):
     id: int
+    # Optionally, include full ExamType details if needed when fetching a Question
+    # exam_type: Optional[ExamType] = None 
 
     class Config:
         from_attributes = True
+
+# Schema for updating a Question
+class QuestionUpdate(BaseModel):
+    problem_statement: Optional[str] = None
+    option_1: Optional[str] = None
+    option_2: Optional[str] = None
+    option_3: Optional[str] = None
+    option_4: Optional[str] = None
+    correct_answer: Optional[int] = None
+    explanation: Optional[str] = None
+    exam_type_id: Optional[int] = None # Allow changing the exam type
 
 
 # Schemas for Summary Statistics

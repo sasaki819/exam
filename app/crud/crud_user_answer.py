@@ -57,29 +57,41 @@ def get_answered_question_ids(db: Session, user_id: int) -> List[int]:
     return [ua.question_id for ua in db.query(UserAnswer.question_id).filter(UserAnswer.user_id == user_id).distinct().all()]
 
 
-def get_questions_always_answered_correctly_by_user(db: Session, user_id: int) -> List[int]:
+def get_questions_always_answered_correctly_by_user(
+    db: Session, 
+    user_id: int, 
+    exam_type_id: Optional[int] = None
+) -> List[int]:
     """
     Returns a list of question IDs that the given user has answered one or more times,
-    and all of those answers were correct.
+    and all of those answers were correct. Optionally filters by exam_type_id.
     """
-    # Subquery to find questions where the user has at least one incorrect answer
-    incorrectly_answered_questions_subquery = (
+    # Subquery to find question IDs that the user has answered incorrectly at least once for the given exam_type
+    incorrectly_answered_question_ids_sq = (
         db.query(UserAnswer.question_id)
-        .filter(UserAnswer.user_id == user_id, UserAnswer.is_correct == False)
-        .distinct()
+        .join(Question, Question.id == UserAnswer.question_id)
+        .filter(UserAnswer.user_id == user_id)
+        .filter(UserAnswer.is_correct == False)
     )
+    if exam_type_id is not None:
+        incorrectly_answered_question_ids_sq = incorrectly_answered_question_ids_sq.filter(Question.exam_type_id == exam_type_id)
+    
+    # Must be a subquery to be used with notin_
+    incorrectly_answered_question_ids_sq = incorrectly_answered_question_ids_sq.distinct().subquery()
 
-    # Main query to find questions answered by the user
-    # Exclude questions found in the subquery (i.e., questions with at least one incorrect answer)
-    # Ensure the user has actually answered these questions.
-    always_correct_questions = (
+    # Query for question IDs that the user has answered (implies at least one answer exists)
+    # and are not in the subquery of incorrectly answered questions.
+    always_correct_query = (
         db.query(UserAnswer.question_id)
-        .filter(
-            UserAnswer.user_id == user_id,
-            ~UserAnswer.question_id.in_(incorrectly_answered_questions_subquery)
-        )
-        .distinct()
-        .all()
+        .join(Question, Question.id == UserAnswer.question_id)
+        .filter(UserAnswer.user_id == user_id)
+        # Ensure we only consider questions that the user has answered.
+        # And that these questions are NOT in the set of questions they've answered incorrectly.
+        .filter(UserAnswer.question_id.notin_(incorrectly_answered_question_ids_sq.select()))
     )
+    if exam_type_id is not None:
+        always_correct_query = always_correct_query.filter(Question.exam_type_id == exam_type_id)
+    
+    always_correct_questions = always_correct_query.distinct().all()
     
     return [q.question_id for q in always_correct_questions]
