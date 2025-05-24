@@ -29,11 +29,11 @@ def get_user_summary_stats(db: Session, user_id: int, exam_type_id: Optional[int
          count_unique_q = db.query(func.count(func.distinct(UserAnswer.question_id)))\
                             .join(Question, Question.id == UserAnswer.question_id)\
                             .filter(UserAnswer.user_id == user_id, Question.exam_type_id == exam_type_id)\
-                            .scalar_one_or_none() or 0
+                            .scalar() or 0 # Changed to .scalar()
     else:
          count_unique_q = db.query(func.count(func.distinct(UserAnswer.question_id)))\
                             .filter(UserAnswer.user_id == user_id)\
-                            .scalar_one_or_none() or 0
+                            .scalar() or 0 # Changed to .scalar()
     total_unique_questions_attempted = count_unique_q
 
 
