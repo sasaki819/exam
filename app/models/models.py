@@ -5,6 +5,16 @@ from sqlalchemy.sql import func
 
 Base = declarative_base()
 
+# New ExamType model
+class ExamType(Base):
+    __tablename__ = "exam_types"
+
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String, unique=True, index=True, nullable=False)
+
+    questions = relationship("Question", back_populates="exam_type")
+
+
 class Question(Base):
     __tablename__ = "questions"
 
@@ -16,6 +26,10 @@ class Question(Base):
     option_4 = Column(String, nullable=False)
     correct_answer = Column(Integer, nullable=False)
     explanation = Column(Text, nullable=True)
+
+    # Add ForeignKey and relationship to ExamType
+    exam_type_id = Column(Integer, ForeignKey("exam_types.id"), nullable=True) # Will be made non-nullable after initial data population
+    exam_type = relationship("ExamType", back_populates="questions")
 
     user_answers = relationship("UserAnswer", back_populates="question")
 

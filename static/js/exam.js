@@ -7,15 +7,22 @@ document.addEventListener('DOMContentLoaded', () => {
     const correctOptionElem = document.getElementById('correct-option');
     const explanationTextElem = document.getElementById('explanation-text');
     const nextQuestionButton = document.getElementById('next-question-button');
-    const examErrorMessage = document.getElementById('exam-error-message');
+    const examErrorMessage = document.getElementById('exam-error-message'); // For general exam errors
     const logoutLink = document.getElementById('logout-link');
 
+    const examTypeSelectionArea = document.getElementById('exam-type-selection-area');
+    const examTypeDropdown = document.getElementById('exam-type-dropdown');
+    const startExamButton = document.getElementById('start-exam-button');
+    const examTypeErrorMesssage = document.getElementById('exam-type-error-message');
+    const questionArea = document.getElementById('question-area');
+
     let currentQuestionId = null;
+    let selectedExamTypeId = null;
 
     function getAuthHeaders(isPost = false) {
         const token = localStorage.getItem('accessToken');
         if (!token) {
-            window.location.href = '/login'; // Redirect if no token
+            window.location.href = '/login';
             return null;
         }
         const headers = { 'Authorization': 'Bearer ' + token };
@@ -25,13 +32,54 @@ document.addEventListener('DOMContentLoaded', () => {
         return headers;
     }
 
-    async function fetchQuestion() {
-        examErrorMessage.textContent = '';
+    async function fetchExamTypes() {
+        examTypeErrorMesssage.textContent = '';
         const headers = getAuthHeaders();
         if (!headers) return;
 
         try {
-            const response = await fetch('/questions/next/', { method: 'GET', headers: headers });
+            const response = await fetch('/exam-types/', { method: 'GET', headers: headers });
+            if (response.status === 401) {
+                localStorage.removeItem('accessToken');
+                window.location.href = '/login';
+                return;
+            }
+            if (!response.ok) {
+                const errorData = await response.json();
+                examTypeErrorMesssage.textContent = errorData.detail || 'Failed to load exam types.';
+                return;
+            }
+            const examTypes = await response.json();
+            if (examTypes.length === 0) {
+                examTypeErrorMesssage.textContent = 'No exam types available.';
+                return;
+            }
+            examTypes.forEach(et => {
+                const option = document.createElement('option');
+                option.value = et.id;
+                option.textContent = et.name;
+                examTypeDropdown.appendChild(option);
+            });
+            startExamButton.style.display = 'inline-block'; // Show button once types are loaded
+
+        } catch (error) {
+            console.error('Error fetching exam types:', error);
+            examTypeErrorMesssage.textContent = 'An error occurred while fetching exam types.';
+        }
+    }
+
+    async function fetchQuestion() {
+        examErrorMessage.textContent = ''; // Clear general exam errors
+        if (!selectedExamTypeId) {
+            examErrorMessage.textContent = 'Please select an exam type and start the exam.';
+            return;
+        }
+        const headers = getAuthHeaders();
+        if (!headers) return;
+
+        try {
+            // Include exam_type_id as a query parameter
+            const response = await fetch(`/questions/next/?exam_type_id=${selectedExamTypeId}`, { method: 'GET', headers: headers });
 
             if (response.status === 401) {
                 localStorage.removeItem('accessToken');
@@ -44,8 +92,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 optionsContainerElem.innerHTML = '';
                 submitAnswerButton.style.display = 'none';
                 nextQuestionButton.style.display = 'none';
-                if (response.status === 404) { // No more questions
-                     problemStatementElem.textContent = "Congratulations! No more questions available.";
+                if (response.status === 404) {
+                     problemStatementElem.textContent = errorData.detail || "No more questions available for this exam type.";
                 }
                 return;
             }
@@ -54,7 +102,7 @@ document.addEventListener('DOMContentLoaded', () => {
             currentQuestionId = question.id;
             problemStatementElem.textContent = question.problem_statement;
             
-            optionsContainerElem.innerHTML = ''; // Clear previous options
+            optionsContainerElem.innerHTML = '';
             for (let i = 1; i <= 4; i++) {
                 const optionKey = `option_${i}`;
                 if (question[optionKey]) {
@@ -62,7 +110,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     radioInput.type = 'radio';
                     radioInput.id = `option${i}`;
                     radioInput.name = 'answer';
-                    radioInput.value = i; // Value is the option number
+                    radioInput.value = i;
 
                     const label = document.createElement('label');
                     label.htmlFor = `option${i}`;
@@ -74,11 +122,11 @@ document.addEventListener('DOMContentLoaded', () => {
                     optionsContainerElem.appendChild(div);
                 }
             }
-
             resultContainerElem.style.display = 'none';
             submitAnswerButton.disabled = false;
             submitAnswerButton.style.display = 'block';
             nextQuestionButton.style.display = 'none';
+            questionArea.style.display = 'block'; // Show question area
 
         } catch (error) {
             console.error('Error fetching question:', error);
@@ -94,7 +142,6 @@ document.addEventListener('DOMContentLoaded', () => {
             examErrorMessage.textContent = 'Please select an answer.';
             return;
         }
-
         const headers = getAuthHeaders(true);
         if (!headers) return;
 
@@ -135,13 +182,34 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    if (startExamButton) {
+        startExamButton.addEventListener('click', () => {
+            selectedExamTypeId = examTypeDropdown.value;
+            if (!selectedExamTypeId) {
+                examTypeErrorMesssage.textContent = 'Please select an exam type.';
+                return;
+            }
+            examTypeErrorMesssage.textContent = ''; // Clear error
+            examTypeSelectionArea.style.display = 'none'; // Hide selection area
+            questionArea.style.display = 'block'; // Show question area
+            fetchQuestion(); // Fetch the first question for the selected exam
+        });
+    }
+    
+    if (examTypeDropdown) {
+         examTypeDropdown.addEventListener('change', () => {
+             // If user changes selection, clear any previous error message.
+             examTypeErrorMesssage.textContent = '';
+         });
+     }
+
     if (submitAnswerButton) {
         submitAnswerButton.addEventListener('click', submitAnswer);
     }
 
     if (nextQuestionButton) {
         nextQuestionButton.addEventListener('click', () => {
-            resultContainerElem.style.display = 'none'; // Hide previous result
+            resultContainerElem.style.display = 'none';
             fetchQuestion();
         });
     }
@@ -154,6 +222,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Initial question load
-    fetchQuestion();
+    // Initial actions
+    fetchExamTypes(); // Load exam types when page loads
+    // Question area is hidden until an exam is started
 });

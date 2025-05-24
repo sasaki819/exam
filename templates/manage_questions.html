@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manage Questions</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+    <div class="container">
+        <h1>Manage Questions</h1>
+        <div id="message-area" class="message-area"></div>
+
+        <div class="form-container" id="create-question-form-container">
+            <h2>Create New Question</h2>
+            <form id="create-question-form">
+                <div>
+                    <label for="new-exam-type-id">Exam Type:</label>
+                    <select id="new-exam-type-id" name="exam_type_id" required></select>
+                </div>
+                <div>
+                    <label for="new-problem-statement">Problem Statement:</label>
+                    <textarea id="new-problem-statement" name="problem_statement" rows="3" required></textarea>
+                </div>
+                <div><label for="new-option-1">Option 1:</label><input type="text" id="new-option-1" name="option_1" required></div>
+                <div><label for="new-option-2">Option 2:</label><input type="text" id="new-option-2" name="option_2" required></div>
+                <div><label for="new-option-3">Option 3:</label><input type="text" id="new-option-3" name="option_3" required></div>
+                <div><label for="new-option-4">Option 4:</label><input type="text" id="new-option-4" name="option_4" required></div>
+                <div>
+                    <label for="new-correct-answer">Correct Answer (1-4):</label>
+                    <input type="number" id="new-correct-answer" name="correct_answer" min="1" max="4" required>
+                </div>
+                <div>
+                    <label for="new-explanation">Explanation (Optional):</label>
+                    <textarea id="new-explanation" name="explanation" rows="2"></textarea>
+                </div>
+                <button type="submit">Create Question</button>
+            </form>
+        </div>
+
+        <div class="filter-container" style="margin-top: 20px;">
+            <label for="filter-exam-type-id">Filter by Exam Type:</label>
+            <select id="filter-exam-type-id">
+                <option value="">All Exam Types</option>
+            </select>
+        </div>
+
+        <div class="list-container">
+            <h2>Existing Questions</h2>
+            <ul id="questions-list">
+                <!-- Questions will be listed here -->
+            </ul>
+        </div>
+
+        <!-- Modal for editing a question -->
+        <div id="edit-question-modal" class="modal" style="display:none;">
+            <div class="modal-content">
+                <span class="close-button">&times;</span>
+                <h2>Edit Question</h2>
+                <form id="edit-question-form">
+                    <input type="hidden" id="edit-question-id">
+                    <div>
+                        <label for="edit-exam-type-id">Exam Type:</label>
+                        <select id="edit-exam-type-id" name="exam_type_id" required></select>
+                    </div>
+                    <div>
+                        <label for="edit-problem-statement">Problem Statement:</label>
+                        <textarea id="edit-problem-statement" name="problem_statement" rows="3" required></textarea>
+                    </div>
+                    <div><label for="edit-option-1">Option 1:</label><input type="text" id="edit-option-1" name="option_1" required></div>
+                    <div><label for="edit-option-2">Option 2:</label><input type="text" id="edit-option-2" name="option_2" required></div>
+                    <div><label for="edit-option-3">Option 3:</label><input type="text" id="edit-option-3" name="option_3" required></div>
+                    <div><label for="edit-option-4">Option 4:</label><input type="text" id="edit-option-4" name="option_4" required></div>
+                    <div>
+                        <label for="edit-correct-answer">Correct Answer (1-4):</label>
+                        <input type="number" id="edit-correct-answer" name="correct_answer" min="1" max="4" required>
+                    </div>
+                    <div>
+                        <label for="edit-explanation">Explanation (Optional):</label>
+                        <textarea id="edit-explanation" name="explanation" rows="2"></textarea>
+                    </div>
+                    <button type="submit">Save Changes</button>
+                </form>
+            </div>
+        </div>
+        <div class="navigation-links" style="margin-top: 20px;">
+             <a href="/" class="button-link">Home</a>
+             <a href="/exam" class="button-link">Take Exam</a>
+             <a href="/summary" class="button-link">View Summary</a>
+             <a href="/manage-exam-types" class="button-link">Manage Exam Types</a>
+             <a href="#" id="logout-link" class="button-link logout-button">Logout</a>
+         </div>
+    </div>
+    <footer>
+        <p>&copy; 2024 FastAPI Quiz App</p>
+    </footer>
+    <script src="/static/js/manage_questions.js"></script>
+</body>
+</html>

@@ -9,7 +9,17 @@
 <body>
     <div class="container">
         <h1>Quiz Exam</h1>
-        <div id="question-area">
+
+        <div id="exam-type-selection-area" class="exam-type-selection">
+            <label for="exam-type-dropdown">Choose Exam Type:</label>
+            <select id="exam-type-dropdown">
+                <option value="">-- Select an Exam Type --</option>
+            </select>
+            <button id="start-exam-button" style="display: none; margin-left: 10px;">Start Exam</button>
+        </div>
+        <div id="exam-type-error-message" class="error-message" style="margin-top:10px;"></div>
+
+        <div id="question-area" style="display: none;"> <!-- Initially hidden -->
             <div id="problem-statement" class="problem-statement">Loading question...</div>
             <form id="options-container" class="options-container">
                 <!-- Options will be dynamically inserted here -->
@@ -25,7 +35,7 @@
         </div>
 
         <button id="next-question-button" style="display: none;">Next Question</button>
-        <div id="exam-error-message" class="error-message"></div>
+        <div id="exam-error-message" class="error-message"></div> <!-- General exam errors -->
         
         <div class="navigation-links" style="margin-top: 20px; text-align: center;">
             <a href="/summary" class="button-link">View Summary</a>

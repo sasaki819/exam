@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manage Exam Types</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+    <div class="container">
+        <h1>Manage Exam Types</h1>
+        <div id="message-area" class="message-area"></div>
+
+        <div class="form-container">
+            <h2>Create New Exam Type</h2>
+            <form id="create-exam-type-form">
+                <div>
+                    <label for="new-exam-type-name">Name:</label>
+                    <input type="text" id="new-exam-type-name" name="name" required>
+                </div>
+                <button type="submit">Create</button>
+            </form>
+        </div>
+
+        <div class="list-container">
+            <h2>Existing Exam Types</h2>
+            <ul id="exam-types-list">
+                <!-- Exam types will be listed here -->
+            </ul>
+        </div>
+
+        <!-- Modal for editing an exam type -->
+        <div id="edit-modal" class="modal" style="display:none;">
+            <div class="modal-content">
+                <span class="close-button" onclick="document.getElementById('edit-modal').style.display='none'">&times;</span>
+                <h2>Edit Exam Type</h2>
+                <form id="edit-exam-type-form">
+                    <input type="hidden" id="edit-exam-type-id">
+                    <div>
+                        <label for="edit-exam-type-name">Name:</label>
+                        <input type="text" id="edit-exam-type-name" name="name" required>
+                    </div>
+                    <button type="submit">Save Changes</button>
+                </form>
+            </div>
+        </div>
+         <div class="navigation-links" style="margin-top: 20px;">
+             <a href="/" class="button-link">Home</a>
+             <a href="/exam" class="button-link">Take Exam</a>
+             <a href="/summary" class="button-link">View Summary</a>
+             <a href="/manage-questions" class="button-link">Manage Questions</a>
+             <a href="#" id="logout-link" class="button-link logout-button">Logout</a>
+         </div>
+    </div>
+    <footer>
+        <p>&copy; 2024 FastAPI Quiz App</p>
+    </footer>
+    <script src="/static/js/manage_exam_types.js"></script>
+</body>
+</html>
