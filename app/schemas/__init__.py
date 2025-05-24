@@ -10,6 +10,12 @@ from .schemas import (
     QuestionCreate,
     QuestionUpdate, # Added QuestionUpdate
     Question,
+    QuestionExportItem, # New
+    QuestionsExport,    # New
+
+    # Import/Export Schemas
+    ImportErrorDetail,  # New
+    ImportSummary,      # New
 
     # Summary Schemas
     UserSummaryStats,
