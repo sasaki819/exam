@@ -12,6 +12,13 @@ document.addEventListener('DOMContentLoaded', async () => {
     const editExamTypeDropdown = document.getElementById('edit-exam-type-id');
     const closeModalButton = editModal.querySelector('.close-button');
 
+    const exportButton = document.getElementById('export-questions-btn'); // Added for export
+
+    // DOM elements for import functionality
+    const importFileIn = document.getElementById('import-questions-file');
+    const importButton = document.getElementById('import-questions-btn');
+    const importMessageArea = document.getElementById('import-message-area');
+
     let allExamTypes = []; // To store fetched exam types for reuse
 
     function getAuthHeaders(isPostOrPut = false) {
@@ -234,4 +241,131 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Initial fetch
     await fetchExamTypes(); // Wait for exam types to load first
     fetchQuestions(); // Then load all questions initially
+
+    // Event listener for the export button
+    if (exportButton) {
+        exportButton.addEventListener('click', async () => {
+            const selectedExamTypeId = filterExamTypeDropdown.value;
+
+            if (!selectedExamTypeId) {
+                displayMessage('Please select a specific Exam Type to export questions.', 'error');
+                return;
+            }
+
+            const exportUrl = `/exam-types/${selectedExamTypeId}/export-questions/`;
+            
+            try {
+                window.location.href = exportUrl;
+                displayMessage('Export initiated. Your browser will now download the file.', 'success');
+            } catch (error) {
+                console.error('Error initiating export:', error);
+                displayMessage('Failed to initiate export. See console for details.', 'error');
+            }
+        });
+    }
+
+    // Helper function for displaying messages in the import area
+    function displayImportMessage(message, type = 'success', errors = []) {
+        importMessageArea.innerHTML = ''; // Clear previous messages
+        
+        const messageP = document.createElement('p');
+        messageP.textContent = message;
+        messageP.className = `message-area-${type}`; // Use a distinct class if needed, or align with existing
+        importMessageArea.appendChild(messageP);
+
+        if (errors.length > 0) {
+            const ul = document.createElement('ul');
+            ul.style.marginTop = '10px';
+            errors.forEach(err => {
+                const li = document.createElement('li');
+                li.style.fontSize = '0.9em';
+                li.style.color = (type === 'error' || type === 'warning') ? 'darkred' : 'black';
+                let errorDetail = `Row ${err.row_index !== null ? err.row_index + 1 : 'N/A'}: ${err.error_message}`;
+                if (err.data) {
+                    errorDetail += ` (Data: ${JSON.stringify(err.data).substring(0, 100)}...)`;
+                }
+                li.textContent = errorDetail;
+                ul.appendChild(li);
+            });
+            importMessageArea.appendChild(ul);
+        }
+        // No timeout for import messages as they can be long with error lists
+    }
+
+    // Event listener for the import button
+    if (importButton) {
+        importButton.addEventListener('click', async () => {
+            const selectedExamTypeId = filterExamTypeDropdown.value;
+            const file = importFileIn.files[0];
+
+            if (!selectedExamTypeId) {
+                displayImportMessage('Please select an Exam Type first to import questions into.', 'error');
+                return;
+            }
+            if (!file) {
+                displayImportMessage('Please select a file to import.', 'error');
+                return;
+            }
+            if (file.type !== 'application/json') {
+                displayImportMessage('Please select a JSON file (.json).', 'error');
+                importFileIn.value = ''; // Clear the invalid file
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('file', file);
+
+            const headers = getAuthHeaders(false); // false because browser sets Content-Type for FormData
+            if (!headers) {
+                 displayImportMessage('Authentication error. Please log in again.', 'error');
+                 return; // Should have been redirected by getAuthHeaders, but as a safeguard.
+            }
+            
+            const importUrl = `/exam-types/${selectedExamTypeId}/import-questions/`;
+
+            try {
+                const response = await fetch(importUrl, {
+                    method: 'POST',
+                    body: formData,
+                    headers: headers 
+                });
+
+                const result = await response.json();
+
+                if (response.ok) {
+                    let successMsg = `Successfully imported ${result.imported_count} questions. Failed: ${result.failed_count}.`;
+                    if (result.failed_count > 0 || (result.errors && result.errors.length > 0)) {
+                         displayImportMessage(successMsg, 'warning', result.errors);
+                    } else {
+                         displayImportMessage(successMsg, 'success', result.errors);
+                    }
+                    if (result.imported_count > 0) {
+                        fetchQuestions(selectedExamTypeId); // Refresh questions for the current exam type
+                    }
+                } else {
+                    // Handle errors from the server (e.g., 400, 404, 422)
+                    let errorMsg = result.detail || 'Import failed. Unknown server error.';
+                    if (result.errors && result.errors.length > 0) { // If the backend provides structured errors
+                        displayImportMessage(errorMsg, 'error', result.errors);
+                    } else if (response.status === 422 && result.detail && Array.isArray(result.detail)) {
+                        // Handle FastAPI's default validation error structure if not caught by custom summary
+                        const formattedErrors = result.detail.map(err => ({
+                            row_index: null, // FastAPI validation errors are not typically row-specific in this context
+                            error_message: `${err.loc.join(' -> ')}: ${err.msg}`,
+                            data: null
+                        }));
+                         displayImportMessage('Validation errors occurred:', 'error', formattedErrors);
+                    }
+                    else {
+                        displayImportMessage(errorMsg, 'error');
+                    }
+                }
+            } catch (error) {
+                console.error('Error during import:', error);
+                displayImportMessage(`An unexpected error occurred during import: ${error.message}`, 'error');
+            } finally {
+                importFileIn.value = ''; // Clear the file input after attempt
+            }
+        });
+    }
 });

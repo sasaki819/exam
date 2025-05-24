@@ -1,3 +1,5 @@
+import json # For import/export tests
+from io import BytesIO # For import tests
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session as SQLAlchemySession # Use the renamed Session from conftest
 from fastapi import status
@@ -165,3 +167,230 @@ def test_delete_exam_type_with_associated_questions(authenticated_client: TestCl
     # 5. Verify the associated Question's exam_type_id is now NULL
     db_session.refresh(associated_question) # Refresh the question state from the DB
     assert associated_question.exam_type_id is None
+
+
+# --- Tests for Export Questions Endpoint ---
+
+def test_export_questions_success(authenticated_client: TestClient, db_session: SQLAlchemySession):
+    from app.crud import crud_question # Local import
+    # 1. Create an ExamType
+    exam_type = crud_exam_type.create_exam_type(db_session, schemas.ExamTypeCreate(name="Export Success ET"))
+    
+    # 2. Add Questions to it
+    q1_data = schemas.QuestionCreate(problem_statement="Q1 Problem", option_1="A", option_2="B", option_3="C", option_4="D", correct_answer=1, exam_type_id=exam_type.id, explanation="Q1 Exp")
+    q2_data = schemas.QuestionCreate(problem_statement="Q2 Problem", option_1="1", option_2="2", option_3="3", option_4="4", correct_answer=2, exam_type_id=exam_type.id) # No explanation
+    q1 = crud_question.create_question(db_session, q1_data)
+    q2 = crud_question.create_question(db_session, q2_data)
+
+    # 3. Make GET request
+    response = authenticated_client.get(f"/exam-types/{exam_type.id}/export-questions/")
+    
+    # 4. Assertions
+    assert response.status_code == status.HTTP_200_OK
+    assert response.headers["content-type"] == "application/json"
+    assert response.headers["content-disposition"].startswith(f"attachment; filename=\"exam_type_{exam_type.name.replace(' ', '_')}_{exam_type.id}_questions.json\"")
+    
+    exported_data = response.json()
+    assert isinstance(exported_data, list)
+    assert len(exported_data) == 2
+    
+    # Verify content of exported questions (order might not be guaranteed, so check for presence)
+    exported_q1_data = next((q for q in exported_data if q["problem_statement"] == "Q1 Problem"), None)
+    exported_q2_data = next((q for q in exported_data if q["problem_statement"] == "Q2 Problem"), None)
+    
+    assert exported_q1_data is not None
+    assert exported_q1_data["option_1"] == "A"
+    assert exported_q1_data["correct_answer"] == 1
+    assert exported_q1_data["explanation"] == "Q1 Exp"
+    assert "id" not in exported_q1_data
+    assert "exam_type_id" not in exported_q1_data
+    
+    assert exported_q2_data is not None
+    assert exported_q2_data["option_1"] == "1"
+    assert exported_q2_data["correct_answer"] == 2
+    assert exported_q2_data["explanation"] is None # Check for null explanation
+    assert "id" not in exported_q2_data
+    assert "exam_type_id" not in exported_q2_data
+
+def test_export_questions_no_questions(authenticated_client: TestClient, db_session: SQLAlchemySession):
+    exam_type = crud_exam_type.create_exam_type(db_session, schemas.ExamTypeCreate(name="Export No Questions ET"))
+    
+    response = authenticated_client.get(f"/exam-types/{exam_type.id}/export-questions/")
+    
+    assert response.status_code == status.HTTP_200_OK
+    assert response.headers["content-type"] == "application/json"
+    exported_data = response.json()
+    assert isinstance(exported_data, list)
+    assert len(exported_data) == 0
+
+def test_export_questions_nonexistent_exam_type(authenticated_client: TestClient):
+    response = authenticated_client.get("/exam-types/999999/export-questions/")
+    assert response.status_code == status.HTTP_404_NOT_FOUND
+    assert response.json()["detail"] == "ExamType not found"
+
+def test_export_questions_unauthenticated(client: TestClient, db_session: SQLAlchemySession):
+    # Use unauthenticated client fixture
+    exam_type = crud_exam_type.create_exam_type(db_session, schemas.ExamTypeCreate(name="Export Unauth ET"))
+    response = client.get(f"/exam-types/{exam_type.id}/export-questions/")
+    assert response.status_code == status.HTTP_401_UNAUTHORIZED 
+
+
+# --- Tests for Import Questions Endpoint ---
+
+def test_import_questions_success(authenticated_client: TestClient, db_session: SQLAlchemySession):
+    from app.crud import crud_question # Local import
+    exam_type = crud_exam_type.create_exam_type(db_session, schemas.ExamTypeCreate(name="Import Success ET"))
+    
+    questions_to_import = [
+        {"problem_statement": "Import Q1", "option_1": "A", "option_2": "B", "option_3": "C", "option_4": "D", "correct_answer": 1, "explanation": "Exp Q1"},
+        {"problem_statement": "Import Q2", "option_1": "1", "option_2": "2", "option_3": "3", "option_4": "4", "correct_answer": 2} # No explanation
+    ]
+    json_string = json.dumps(questions_to_import)
+    
+    files = {"file": ("test_import.json", BytesIO(json_string.encode('utf-8')), "application/json")}
+    response = authenticated_client.post(f"/exam-types/{exam_type.id}/import-questions/", files=files)
+    
+    assert response.status_code == status.HTTP_200_OK
+    summary = response.json()
+    assert summary["imported_count"] == 2
+    assert summary["failed_count"] == 0
+    assert len(summary["errors"]) == 0
+    
+    # Verify in DB
+    db_questions = db_session.query(models.Question).filter(models.Question.exam_type_id == exam_type.id).all()
+    assert len(db_questions) == 2
+    
+    q1_db = next((q for q in db_questions if q.problem_statement == "Import Q1"), None)
+    assert q1_db is not None
+    assert q1_db.option_1 == "A"
+    assert q1_db.correct_answer == 1
+    assert q1_db.explanation == "Exp Q1"
+    assert q1_db.exam_type_id == exam_type.id
+
+    q2_db = next((q for q in db_questions if q.problem_statement == "Import Q2"), None)
+    assert q2_db is not None
+    assert q2_db.option_1 == "1"
+    assert q2_db.correct_answer == 2
+    assert q2_db.explanation is None
+    assert q2_db.exam_type_id == exam_type.id
+
+
+def test_import_questions_partial_success(authenticated_client: TestClient, db_session: SQLAlchemySession):
+    from app.crud import crud_question # Local import
+    exam_type = crud_exam_type.create_exam_type(db_session, schemas.ExamTypeCreate(name="Import Partial ET"))
+    
+    questions_to_import = [
+        {"problem_statement": "Valid Q1", "option_1": "A", "option_2": "B", "option_3": "C", "option_4": "D", "correct_answer": 1}, # Valid
+        {"option_1": "X", "option_2": "Y", "option_3": "Z", "option_4": "W", "correct_answer": 3}, # Invalid - missing problem_statement
+        {"problem_statement": "Valid Q2", "option_1": "1", "option_2": "2", "option_3": "3", "option_4": "4", "correct_answer": 4, "explanation": "Exp Q2"} # Valid
+    ]
+    json_string = json.dumps(questions_to_import)
+    
+    files = {"file": ("test_import_partial.json", BytesIO(json_string.encode('utf-8')), "application/json")}
+    response = authenticated_client.post(f"/exam-types/{exam_type.id}/import-questions/", files=files)
+    
+    assert response.status_code == status.HTTP_200_OK
+    summary = response.json()
+    assert summary["imported_count"] == 2
+    assert summary["failed_count"] == 1
+    assert len(summary["errors"]) == 1
+    assert summary["errors"][0]["row_index"] == 1 # 0-indexed
+    assert "problem_statement" in summary["errors"][0]["error_message"] # Check if the error message mentions problem_statement
+    assert summary["errors"][0]["data"]["option_1"] == "X" # Check if original data is in error report
+    
+    # Verify in DB
+    db_questions = db_session.query(models.Question).filter(models.Question.exam_type_id == exam_type.id).all()
+    assert len(db_questions) == 2
+    assert any(q.problem_statement == "Valid Q1" for q in db_questions)
+    assert any(q.problem_statement == "Valid Q2" for q in db_questions)
+
+
+def test_import_questions_all_fail_validation(authenticated_client: TestClient, db_session: SQLAlchemySession):
+    exam_type = crud_exam_type.create_exam_type(db_session, schemas.ExamTypeCreate(name="Import All Fail ET"))
+    
+    questions_to_import = [
+        {"option_1": "A", "correct_answer": 1}, # Missing problem_statement, options
+        {"problem_statement": "Q2", "option_1": "1"} # Missing other options, correct_answer
+    ]
+    json_string = json.dumps(questions_to_import)
+    
+    files = {"file": ("test_import_all_fail.json", BytesIO(json_string.encode('utf-8')), "application/json")}
+    response = authenticated_client.post(f"/exam-types/{exam_type.id}/import-questions/", files=files)
+    
+    assert response.status_code == status.HTTP_200_OK
+    summary = response.json()
+    assert summary["imported_count"] == 0
+    assert summary["failed_count"] == 2
+    assert len(summary["errors"]) == 2
+    assert summary["errors"][0]["row_index"] == 0
+    assert summary["errors"][1]["row_index"] == 1
+    
+    # Verify no questions added to DB
+    db_questions_count = db_session.query(models.Question).filter(models.Question.exam_type_id == exam_type.id).count()
+    assert db_questions_count == 0
+
+def test_import_questions_empty_list_in_file(authenticated_client: TestClient, db_session: SQLAlchemySession):
+    exam_type = crud_exam_type.create_exam_type(db_session, schemas.ExamTypeCreate(name="Import Empty List ET"))
+    
+    questions_to_import = []
+    json_string = json.dumps(questions_to_import)
+    
+    files = {"file": ("test_import_empty.json", BytesIO(json_string.encode('utf-8')), "application/json")}
+    response = authenticated_client.post(f"/exam-types/{exam_type.id}/import-questions/", files=files)
+    
+    assert response.status_code == status.HTTP_200_OK
+    summary = response.json()
+    assert summary["imported_count"] == 0
+    assert summary["failed_count"] == 0
+    assert len(summary["errors"]) == 0
+
+def test_import_questions_malformed_json_file(authenticated_client: TestClient, db_session: SQLAlchemySession):
+    exam_type = crud_exam_type.create_exam_type(db_session, schemas.ExamTypeCreate(name="Import Malformed ET"))
+    
+    # Test 1: Not a list
+    malformed_json_string_not_list = json.dumps({"test": "not a list"})
+    files_not_list = {"file": ("test_malformed1.json", BytesIO(malformed_json_string_not_list.encode('utf-8')), "application/json")}
+    response_not_list = authenticated_client.post(f"/exam-types/{exam_type.id}/import-questions/", files=files_not_list)
+    
+    assert response_not_list.status_code == status.HTTP_200_OK 
+    summary_not_list = response_not_list.json()
+    assert summary_not_list["imported_count"] == 0
+    assert summary_not_list["failed_count"] == 0 # File level error, not item failure
+    assert len(summary_not_list["errors"]) == 1
+    assert "JSON content is not a list" in summary_not_list["errors"][0]["error_message"]
+    assert summary_not_list["errors"][0]["row_index"] is None # File level error
+    
+    # Test 2: Invalid JSON string
+    invalid_json_string = "this is not json"
+    files_invalid_json = {"file": ("test_malformed2.json", BytesIO(invalid_json_string.encode('utf-8')), "application/json")}
+    response_invalid_json = authenticated_client.post(f"/exam-types/{exam_type.id}/import-questions/", files=files_invalid_json)
+    
+    assert response_invalid_json.status_code == status.HTTP_200_OK
+    summary_invalid_json = response_invalid_json.json()
+    assert summary_invalid_json["imported_count"] == 0
+    assert summary_invalid_json["failed_count"] == 0 # File level error
+    assert len(summary_invalid_json["errors"]) == 1
+    assert "Invalid JSON file" in summary_invalid_json["errors"][0]["error_message"]
+    assert summary_invalid_json["errors"][0]["row_index"] is None # File level error
+
+# test_import_questions_not_json_file_content_type is less critical as FastAPI/browser might handle it.
+# The backend tries to parse JSON regardless of UploadFile.content_type.
+# If strict content-type check was added to backend, this test would be more relevant.
+
+def test_import_questions_nonexistent_exam_type(authenticated_client: TestClient):
+    questions_to_import = [{"problem_statement": "Q", "option_1":"A", "option_2":"B", "option_3":"C", "option_4":"D", "correct_answer":1}]
+    json_string = json.dumps(questions_to_import)
+    files = {"file": ("test_import.json", BytesIO(json_string.encode('utf-8')), "application/json")}
+    
+    response = authenticated_client.post("/exam-types/999999/import-questions/", files=files)
+    assert response.status_code == status.HTTP_404_NOT_FOUND
+    assert response.json()["detail"] == "ExamType not found"
+
+def test_import_questions_unauthenticated(client: TestClient, db_session: SQLAlchemySession):
+    exam_type = crud_exam_type.create_exam_type(db_session, schemas.ExamTypeCreate(name="Import Unauth ET"))
+    questions_to_import = [{"problem_statement": "Q", "option_1":"A", "option_2":"B", "option_3":"C", "option_4":"D", "correct_answer":1}]
+    json_string = json.dumps(questions_to_import)
+    files = {"file": ("test_import.json", BytesIO(json_string.encode('utf-8')), "application/json")}
+
+    response = client.post(f"/exam-types/{exam_type.id}/import-questions/", files=files)
+    assert response.status_code == status.HTTP_401_UNAUTHORIZED

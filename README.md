@@ -26,6 +26,52 @@ QuizWiz is a web application designed to help users prepare for exams by providi
 *   **Comprehensive Automated Test Suite:** Includes unit and integration tests using Pytest to ensure application reliability.
 *   **Dockerized Environment:** Fully containerized using Docker and Docker Compose for consistent development, testing, and production environments.
 
+## Question Import and Export
+
+QuizWiz now supports bulk import and export of questions for specific exam types, facilitating easier content management.
+
+*   **Location**: These features are available on the "Manage Questions" page (`/manage-questions`). Both import and export operations are performed for the exam type currently selected in the filter dropdown on that page.
+*   **File Format**: The data format used for both import and export is JSON.
+
+### Exporting Questions
+
+*   When an exam type is selected in the filter, clicking the "Export Questions for Selected Type" button will initiate a download.
+*   The downloaded file will be a JSON file (e.g., `exam_type_My_Exam_1_questions.json`).
+*   This file contains a JSON array of all questions belonging to the selected exam type.
+*   Each question object in the array will include its problem statement, options, correct answer, and explanation (if any). Fields like internal ID or exam type ID are not included in the export.
+
+### Importing Questions
+
+*   Users can upload a JSON file to add multiple questions to the currently selected exam type.
+*   The import file must be a JSON array (a list) of question objects. Each object should conform to the following structure:
+
+    ```json
+    {
+      "problem_statement": "What is 2 + 2?",
+      "option_1": "3",
+      "option_2": "4",
+      "option_3": "5",
+      "option_4": "6",
+      "correct_answer": 2,
+      "explanation": "The sum of 2 and 2 is 4."
+    }
+    ```
+
+*   **Key Fields for Each Question Object**:
+    *   `problem_statement` (string, required): The text of the question.
+    *   `option_1` (string, required): Text for the first choice.
+    *   `option_2` (string, required): Text for the second choice.
+    *   `option_3` (string, required): Text for the third choice.
+    *   `option_4` (string, required): Text for the fourth choice.
+    *   `correct_answer` (integer, required): A number from 1 to 4, indicating which option is correct.
+    *   `explanation` (string, optional): An explanation for the answer. If not provided, it will be stored as null.
+
+*   **Import Process & Feedback**:
+    *   The system will attempt to import each question from the JSON array.
+    *   After the import attempt, a summary will be displayed, indicating how many questions were successfully imported and how many failed.
+    *   If there are failures, detailed error messages will be provided for each failed question, including the row number (0-indexed from the file) and the problematic data.
+    *   Successfully imported questions will be immediately available for quizzing under the selected exam type.
+
 ## Technology Stack
 
 *   **Backend:** Python 3.9, FastAPI
