@@ -1,7 +1,7 @@
 from datetime import timedelta
 from typing import Annotated, Optional # Added Optional
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Request # Added Request
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 
@@ -60,3 +60,28 @@ async def login_for_access_token(
         data={"sub": user.username}, expires_delta=access_token_expires
     )
     return {"access_token": access_token, "token_type": "bearer"}
+
+async def get_current_user_or_none(
+    request: Request, # Changed to use request
+    db: Session = Depends(get_db)
+) -> Optional[User]:
+    auth_header = request.headers.get("Authorization")
+    if not auth_header:
+        return None
+    
+    parts = auth_header.split()
+    if len(parts) != 2 or parts[0].lower() != "bearer":
+        # Invalid Authorization header format
+        return None
+        
+    token = parts[1]
+    try:
+        username = security.decode_token(token)
+        if username is None:
+            return None # Token decoding failed or no username in token
+        user = get_user_from_db(db, username=username)
+        # user can be None if not found in DB, which is valid for "or_none"
+        return user
+    except Exception: 
+        # Catches JWT errors (expired, invalid signature, etc.) or other issues
+        return None
