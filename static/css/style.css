@@ -317,3 +317,9 @@ footer {
         font-size: 0.95rem;
     }
 }
+
+/* Preserve newlines in problem statements and explanations */
+#problem-statement,
+#explanation-text {
+    white-space: pre-wrap;
+}
