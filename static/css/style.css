@@ -138,6 +138,7 @@ button:disabled {
 
 /* Error Messages */
 .error-message {
+    display: none; /* Added to hide by default */
     color: var(--danger-color);
     background-color: #f8d7da; /* Light red background */
     border: 1px solid #f5c6cb; /* Reddish border */
@@ -145,6 +146,16 @@ button:disabled {
     margin-top: 15px;
     border-radius: var(--border-radius);
     text-align: center;
+}
+
+/* Message Area for general feedback (e.g., in manage_questions.html) */
+.message-area {
+    display: none; /* Hidden by default */
+    padding: 10px;
+    margin-top: 15px;
+    border-radius: var(--border-radius);
+    text-align: center;
+    /* Specific success/error styles will be applied by other classes or JS */
 }
 
 /* Exam Page Specifics */

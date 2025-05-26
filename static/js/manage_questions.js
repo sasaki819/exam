@@ -30,9 +30,14 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     function displayMessage(message, type = 'success') {
+        messageArea.style.display = 'block'; // Show message area
         messageArea.textContent = message;
-        messageArea.className = `message-area ${type}`;
-        setTimeout(() => { messageArea.textContent = ''; messageArea.className = 'message-area'; }, 3000);
+        messageArea.className = `message-area ${type}`; // Applies .success or .error for styling
+        setTimeout(() => { 
+            messageArea.textContent = ''; 
+            messageArea.className = 'message-area'; // Reset class
+            messageArea.style.display = 'none'; // Hide message area
+        }, 3000);
     }
 
     async function fetchExamTypes() {
@@ -299,6 +304,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // Helper function for displaying messages in the import area
     function displayImportMessage(message, type = 'success', errors = []) {
+        importMessageArea.style.display = 'block'; // Show import message area
         importMessageArea.innerHTML = ''; // Clear previous messages
         
         const messageP = document.createElement('p');

@@ -29,7 +29,8 @@ class ImportErrorDetail(BaseModel):
 class ImportSummary(BaseModel):
     imported_count: int
     failed_count: int
-    errors: List[ImportErrorDetail]
+    skipped_count: int = 0  # この行を追加
+    errors: List[ImportErrorDetail] = []
 
 # Schemas for Question
 class QuestionBase(BaseModel):

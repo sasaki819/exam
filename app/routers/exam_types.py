@@ -153,6 +153,7 @@ async def import_questions_for_exam_type(
 
     imported_count = 0
     failed_count = 0
+    skipped_count = 0  # Initialize skipped_count
     errors_list: List[ImportErrorDetail] = []
 
     contents = await file.read()
@@ -166,15 +167,27 @@ async def import_questions_for_exam_type(
 
     if not isinstance(parsed_data, list):
         errors_list.append(ImportErrorDetail(error_message="JSON content is not a list of questions."))
-        return ImportSummary(imported_count=0, failed_count=0, errors=errors_list)
+        return ImportSummary(imported_count=0, failed_count=0, skipped_count=0, errors=errors_list)
 
     for index, item_data in enumerate(parsed_data):
         try:
             question_export_item = QuestionExportItem(**item_data)
             question_create_data = question_export_item.model_dump()
+            
+            problem_statement = question_create_data.get("problem_statement")
+            # Since QuestionExportItem ensures problem_statement exists, we don't need to check for None here.
+            # If it could be None or empty and that's invalid, QuestionExportItem should enforce it.
+
+            existing_question = db.query(models.Question).filter(models.Question.problem_statement == problem_statement).first()
+            if existing_question:
+                skipped_count += 1
+                continue
+
             question_create_data['exam_type_id'] = exam_type_id
             question_to_create_schema = QuestionCreate(**question_create_data)
             
+            # The create_question function might raise ValueError for duplicates if another process created it
+            # between the check and here. This will be caught by the generic Exception handler below.
             crud.crud_question.create_question(db=db, question=question_to_create_schema)
             imported_count += 1
 
@@ -197,5 +210,6 @@ async def import_questions_for_exam_type(
     return ImportSummary(
         imported_count=imported_count,
         failed_count=failed_count,
+        skipped_count=skipped_count, # Include skipped_count in the response
         errors=errors_list
     )

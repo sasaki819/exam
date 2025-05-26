@@ -394,3 +394,77 @@ def test_import_questions_unauthenticated(client: TestClient, db_session: SQLAlc
 
     response = client.post(f"/exam-types/{exam_type.id}/import-questions/", files=files)
     assert response.status_code == status.HTTP_401_UNAUTHORIZED
+
+def test_import_questions_with_duplicates_and_new(authenticated_client: TestClient, db_session: SQLAlchemySession):
+    # 1. Create a new ExamType for this test to ensure isolation
+    et_payload = {"name": "Import Duplicates Test ET"}
+    response_et = authenticated_client.post("/exam-types/", json=et_payload)
+    assert response_et.status_code == status.HTTP_201_CREATED
+    exam_type_id = response_et.json()["id"]
+
+    # 2. Create an initial question linked to this exam_type_id
+    initial_question_payload = {
+        "problem_statement": "既存の問題1",
+        "option_1": "Initial Opt1", "option_2": "Initial Opt2", "option_3": "Initial Opt3", "option_4": "Initial Opt4",
+        "correct_answer": 1, "explanation": "Initial Explanation",
+        "exam_type_id": exam_type_id
+    }
+    response_initial_q = authenticated_client.post("/questions/", json=initial_question_payload)
+    assert response_initial_q.status_code == status.HTTP_201_CREATED
+
+    # 3. Prepare the questions_to_import list
+    questions_to_import = [
+        {
+            "problem_statement": "既存の問題1", # Duplicate
+            "option_1": "Dup Opt1", "option_2": "Dup Opt2", "option_3": "Dup Opt3", "option_4": "Dup Opt4",
+            "correct_answer": 2, "explanation": "Duplicate Explanation"
+        },
+        {
+            "problem_statement": "新しい問題A", # New
+            "option_1": "NewA Opt1", "option_2": "NewA Opt2", "option_3": "NewA Opt3", "option_4": "NewA Opt4",
+            "correct_answer": 3, "explanation": "NewA Explanation"
+        },
+        {
+            "problem_statement": "新しい問題B", # New
+            "option_1": "NewB Opt1", "option_2": "NewB Opt2", "option_3": "NewB Opt3", "option_4": "NewB Opt4",
+            "correct_answer": 4, "explanation": "NewB Explanation"
+        }
+    ]
+
+    # 4. Convert to JSON and BytesIO, then POST for import
+    json_data = json.dumps(questions_to_import)
+    files = {"file": ("test_import_dup.json", BytesIO(json_data.encode('utf-8')), "application/json")}
+    
+    response_import = authenticated_client.post(
+        f"/exam-types/{exam_type_id}/import-questions/",
+        files=files
+    )
+
+    # 5. Assert response status code
+    assert response_import.status_code == status.HTTP_200_OK
+
+    # 6. Parse response and assert counts
+    summary = response_import.json()
+    assert summary["imported_count"] == 2, f"Actual summary: {summary}"
+    assert summary["skipped_count"] == 1, f"Actual summary: {summary}"
+    assert summary["failed_count"] == 0, f"Actual summary: {summary}"
+    assert len(summary["errors"]) == 0, f"Actual summary: {summary}"
+
+    # 7. Verify the questions in the database via API
+    response_get_all = authenticated_client.get(f"/questions/?exam_type_id={exam_type_id}")
+    assert response_get_all.status_code == status.HTTP_200_OK
+    
+    all_questions_after_import = response_get_all.json()
+    assert len(all_questions_after_import) == 3 # Initial (1) + New (2)
+
+    problem_statements_in_db = {q["problem_statement"] for q in all_questions_after_import}
+    
+    assert "既存の問題1" in problem_statements_in_db
+    assert "新しい問題A" in problem_statements_in_db
+    assert "新しい問題B" in problem_statements_in_db
+
+    # Additionally, check that the "既存の問題1" was not overwritten by the duplicate import data
+    existing_q_after_import = next((q for q in all_questions_after_import if q["problem_statement"] == "既存の問題1"), None)
+    assert existing_q_after_import is not None
+    assert existing_q_after_import["option_1"] == "Initial Opt1" # Should be the original option
+    assert existing_q_after_import["correct_answer"] == 1 # Should be the original answer

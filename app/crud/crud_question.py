@@ -20,6 +20,11 @@ def get_questions(
     return query.offset(skip).limit(limit).all()
 
 def create_question(db: Session, question: schemas.QuestionCreate) -> Question:
+    # Check for existing question with the same problem statement
+    existing_question = db.query(Question).filter(Question.problem_statement == question.problem_statement).first()
+    if existing_question:
+        raise ValueError("Duplicate problem statement")
+
     db_question = Question(
         problem_statement=question.problem_statement,
         option_1=question.option_1,

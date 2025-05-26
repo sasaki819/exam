@@ -33,7 +33,8 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     async function fetchExamTypes() {
-        examTypeErrorMesssage.textContent = '';
+        examTypeErrorMesssage.textContent = ''; 
+        examTypeErrorMesssage.style.display = 'none'; // Hide error message
         const headers = getAuthHeaders();
         if (!headers) return;
 
@@ -46,11 +47,13 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             if (!response.ok) {
                 const errorData = await response.json();
+                examTypeErrorMesssage.style.display = 'block'; // Show error
                 examTypeErrorMesssage.textContent = errorData.detail || 'Failed to load exam types.';
                 return;
             }
             const examTypes = await response.json();
             if (examTypes.length === 0) {
+                examTypeErrorMesssage.style.display = 'block'; // Show error
                 examTypeErrorMesssage.textContent = 'No exam types available.';
                 return;
             }
@@ -64,13 +67,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
         } catch (error) {
             console.error('Error fetching exam types:', error);
+            examTypeErrorMesssage.style.display = 'block'; // Show error
             examTypeErrorMesssage.textContent = 'An error occurred while fetching exam types.';
         }
     }
 
     async function fetchQuestion() {
-        examErrorMessage.textContent = ''; // Clear general exam errors
+        examErrorMessage.textContent = ''; 
+        examErrorMessage.style.display = 'none'; // Hide general exam errors
         if (!selectedExamTypeId) {
+            examErrorMessage.style.display = 'block'; // Show error
             examErrorMessage.textContent = 'Please select an exam type and start the exam.';
             return;
         }
@@ -88,12 +94,17 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             if (!response.ok) {
                 const errorData = await response.json();
-                problemStatementElem.textContent = errorData.detail || 'Failed to load question.';
+                examErrorMessage.style.display = 'block'; // Show error message area
+                // Set both problemStatementElem (as per original code for certain messages) and examErrorMessage
+                problemStatementElem.textContent = errorData.detail || 'Failed to load question.'; 
+                examErrorMessage.textContent = errorData.detail || 'Failed to load question.';
                 optionsContainerElem.innerHTML = '';
                 submitAnswerButton.style.display = 'none';
                 nextQuestionButton.style.display = 'none';
                 if (response.status === 404) {
+                     examErrorMessage.style.display = 'block'; // Show error message area
                      problemStatementElem.textContent = errorData.detail || "No more questions available for this exam type.";
+                     examErrorMessage.textContent = errorData.detail || "No more questions available for this exam type.";
                 }
                 return;
             }
@@ -102,26 +113,45 @@ document.addEventListener('DOMContentLoaded', () => {
             currentQuestionId = question.id;
             problemStatementElem.textContent = question.problem_statement;
             
-            optionsContainerElem.innerHTML = '';
+            optionsContainerElem.innerHTML = ''; // Clear existing options
+
+            // 1. Create an array of option objects
+            let options = [];
             for (let i = 1; i <= 4; i++) {
                 const optionKey = `option_${i}`;
                 if (question[optionKey]) {
-                    const radioInput = document.createElement('input');
-                    radioInput.type = 'radio';
-                    radioInput.id = `option${i}`;
-                    radioInput.name = 'answer';
-                    radioInput.value = i;
-
-                    const label = document.createElement('label');
-                    label.htmlFor = `option${i}`;
-                    label.textContent = question[optionKey];
-
-                    const div = document.createElement('div');
-                    div.appendChild(radioInput);
-                    div.appendChild(label);
-                    optionsContainerElem.appendChild(div);
+                    options.push({
+                        originalIndex: i, // Original option number (1-4)
+                        text: question[optionKey],
+                        id: `option${i}` // ID for label's 'for' attribute and input's 'id'
+                    });
                 }
             }
+
+            // 2. Shuffle the options array (Fisher-Yates/Knuth Shuffle)
+            for (let i = options.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [options[i], options[j]] = [options[j], options[i]];
+            }
+
+            // 3. Render the shuffled options
+            options.forEach(option => {
+                const radioInput = document.createElement('input');
+                radioInput.type = 'radio';
+                radioInput.id = option.id; // e.g., "option1", "option2" (original number based ID)
+                radioInput.name = 'answer';
+                radioInput.value = option.originalIndex; // ★ Important: Set originalIndex as value
+
+                const label = document.createElement('label');
+                label.htmlFor = option.id;
+                label.textContent = option.text;
+
+                const div = document.createElement('div');
+                div.appendChild(radioInput);
+                div.appendChild(label);
+                optionsContainerElem.appendChild(div);
+            });
+
             resultContainerElem.style.display = 'none';
             submitAnswerButton.disabled = false;
             submitAnswerButton.style.display = 'block';
@@ -130,15 +160,18 @@ document.addEventListener('DOMContentLoaded', () => {
 
         } catch (error) {
             console.error('Error fetching question:', error);
-            problemStatementElem.textContent = 'An error occurred while fetching the question.';
+            examErrorMessage.style.display = 'block'; // Show error
+            problemStatementElem.textContent = 'An error occurred while fetching the question.'; // As per original
             examErrorMessage.textContent = 'An error occurred. Please try refreshing.';
         }
     }
 
     async function submitAnswer() {
         examErrorMessage.textContent = '';
+        examErrorMessage.style.display = 'none'; // Hide error
         const selectedOption = document.querySelector('input[name="answer"]:checked');
         if (!selectedOption) {
+            examErrorMessage.style.display = 'block'; // Show error
             examErrorMessage.textContent = 'Please select an answer.';
             return;
         }
@@ -161,6 +194,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             if (!response.ok) {
                 const errorData = await response.json();
+                examErrorMessage.style.display = 'block'; // Show error
                 examErrorMessage.textContent = errorData.detail || 'Failed to submit answer.';
                 return;
             }
@@ -178,6 +212,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         } catch (error) {
             console.error('Error submitting answer:', error);
+            examErrorMessage.style.display = 'block'; // Show error
             examErrorMessage.textContent = 'An error occurred while submitting your answer.';
         }
     }
@@ -186,10 +221,12 @@ document.addEventListener('DOMContentLoaded', () => {
         startExamButton.addEventListener('click', () => {
             selectedExamTypeId = examTypeDropdown.value;
             if (!selectedExamTypeId) {
+                examTypeErrorMesssage.style.display = 'block'; // Show error
                 examTypeErrorMesssage.textContent = 'Please select an exam type.';
                 return;
             }
-            examTypeErrorMesssage.textContent = ''; // Clear error
+            examTypeErrorMesssage.textContent = ''; 
+            examTypeErrorMesssage.style.display = 'none'; // Hide error
             examTypeSelectionArea.style.display = 'none'; // Hide selection area
             questionArea.style.display = 'block'; // Show question area
             fetchQuestion(); // Fetch the first question for the selected exam
@@ -200,6 +237,7 @@ document.addEventListener('DOMContentLoaded', () => {
          examTypeDropdown.addEventListener('change', () => {
              // If user changes selection, clear any previous error message.
              examTypeErrorMesssage.textContent = '';
+             examTypeErrorMesssage.style.display = 'none'; // Hide error
          });
      }
 

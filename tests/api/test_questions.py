@@ -307,3 +307,31 @@ def test_get_next_question_all_answered_correctly_fallback(
     assert response_one_q.status_code == status.HTTP_200_OK
     data_one_q = response_one_q.json()
     assert data_one_q["id"] == q1.id
+
+def test_create_duplicate_question(authenticated_client: TestClient, test_exam_type: models.ExamType):
+    problem_statement = "重複テスト用の問題文"
+    question_payload = {
+        "problem_statement": problem_statement,
+        "option_1": "A",
+        "option_2": "B",
+        "option_3": "C",
+        "option_4": "D",
+        "correct_answer": 1,
+        "explanation": "This is a test explanation.",
+        "exam_type_id": test_exam_type.id
+    }
+
+    # 1. Create the first question
+    response1 = authenticated_client.post("/questions/", json=question_payload)
+    assert response1.status_code == status.HTTP_201_CREATED, f"Actual response: {response1.json()}"
+
+    # 2. Attempt to create the second question with the same problem statement
+    response2 = authenticated_client.post("/questions/", json=question_payload)
+    
+    # 3. Assert the status code is 409
+    assert response2.status_code == status.HTTP_409_CONFLICT
+    
+    # 4. Assert the detail message
+    error_data = response2.json()
+    assert "detail" in error_data
+    assert error_data["detail"] == "Question with this problem statement already exists."

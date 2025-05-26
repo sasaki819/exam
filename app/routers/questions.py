@@ -18,7 +18,10 @@ def create_new_question(
     exam_type = crud.crud_exam_type.get_exam_type(db, exam_type_id=question.exam_type_id)
     if not exam_type:
         raise HTTPException(status_code=404, detail=f"ExamType with id {question.exam_type_id} not found.")
-    return crud.crud_question.create_question(db=db, question=question)
+    try:
+        return crud.crud_question.create_question(db=db, question=question)
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Question with this problem statement already exists.")
 
 @router.get("/next/", response_model=schemas.Question)
 def get_next_question(
