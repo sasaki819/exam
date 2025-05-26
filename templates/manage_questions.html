@@ -43,6 +43,7 @@
             <select id="filter-exam-type-id">
                 <option value="">All Exam Types</option>
             </select>
+            <button id="export-questions-btn" style="margin-left: 10px;">Export Questions for Selected Type</button>
         </div>
 
         <div class="list-container">
@@ -50,6 +51,17 @@
             <ul id="questions-list">
                 <!-- Questions will be listed here -->
             </ul>
+        </div>
+
+        <div class="form-container" id="import-questions-container" style="margin-top: 30px;">
+            <h2>Import Questions</h2>
+            <p>Select an Exam Type from the filter above to import questions into it.</p>
+            <div>
+                <label for="import-questions-file">Select JSON File:</label>
+                <input type="file" id="import-questions-file" accept=".json">
+            </div>
+            <button id="import-questions-btn" style="margin-top: 10px;">Import Questions</button>
+            <div id="import-message-area" class="message-area" style="margin-top: 10px;"></div>
         </div>
 
         <!-- Modal for editing a question -->

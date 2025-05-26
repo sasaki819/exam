@@ -19,6 +19,18 @@ class ExamType(ExamTypeBase):
     class Config:
         from_attributes = True
 
+
+# Schemas for Import Functionality
+class ImportErrorDetail(BaseModel):
+    row_index: Optional[int] = None # Or line number, if applicable
+    error_message: str
+    data: Optional[dict] = None # The problematic data row
+
+class ImportSummary(BaseModel):
+    imported_count: int
+    failed_count: int
+    errors: List[ImportErrorDetail]
+
 # Schemas for Question
 class QuestionBase(BaseModel):
     problem_statement: str
@@ -32,6 +44,19 @@ class QuestionBase(BaseModel):
 
 class QuestionCreate(QuestionBase):
     pass
+
+# Schema for exporting questions
+class QuestionExportItem(BaseModel):
+    problem_statement: str
+    option_1: str
+    option_2: str
+    option_3: str
+    option_4: str
+    correct_answer: int
+    explanation: Optional[str] = None
+
+# Schema for a list of questions to export
+QuestionsExport = List[QuestionExportItem]
 
 class Question(QuestionBase):
     id: int
