@@ -132,7 +132,7 @@ def export_questions_for_exam_type(
     
     questions_to_export_dict = [q.model_dump() for q in questions_export_schema_list]
     
-    json_content = json.dumps(questions_to_export_dict, indent=4)
+    json_content = json.dumps(questions_to_export_dict, indent=4, ensure_ascii=False)
     
     response_headers = {
         "Content-Disposition": f"attachment; filename=\"{filename}\""
